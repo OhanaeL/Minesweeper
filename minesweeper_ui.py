@@ -182,7 +182,7 @@ class MinesweeperGUI:
         pygame.draw.rect(self.screen, (40, 40, 40), self.button_rect, width=3, border_radius=8)
 
         # button text
-        button_text = "START SOLVING" if not self.solving else "SOLVING..."
+        button_text = "START SOLVING" if not self.solving else "PAUSE"
         text_surface = self.button_font.render(button_text, True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=self.button_rect.center)
         self.screen.blit(text_surface, text_rect)
@@ -235,6 +235,22 @@ class MinesweeperGUI:
         if self.auto_step:
             time.sleep(self.move_delay)
 
+    def get_cell_from_pos(self, pos):
+        x, y = pos
+        x -= 30
+        y -= 80
+        
+        if x < 0 or y < 0:
+            return None
+        
+        col = x // (self.cell_size + self.margin)
+        row = y // (self.cell_size + self.margin)
+        
+        if row < 0 or row >= self.rows or col < 0 or col >= self.cols:
+            return None
+        
+        return row, col
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -246,7 +262,34 @@ class MinesweeperGUI:
                         if not self.solving:
                             self.start_solving()
                         else:
-                            self.auto_step = not self.auto_step
+                            self.solving = False
+                            self.draw_board()
+                    else:
+                        cell = self.get_cell_from_pos(event.pos)
+                        if cell is not None:
+                            row, col = cell
+                            board = self.env.board_state()
+                            game_state = self.env.game_state()
+                            if game_state == "playing" and board[row, col] == -1:
+                                self.env.click_cell(row, col)
+                                if self.env.game_state() == "won":
+                                    self.env.reveal_remaining_mines()
+                                self.draw_board()
+                elif event.button == 3:
+                    cell = self.get_cell_from_pos(event.pos)
+                    if cell is not None:
+                        row, col = cell
+                        board = self.env.board_state()
+                        game_state = self.env.game_state()
+                        if game_state == "playing":
+                            if board[row, col] == -1:
+                                self.env.flag_cell(row, col)
+                                self.solver.update_flag(row, col, True)
+                                self.draw_board()
+                            elif board[row, col] == 9:
+                                self.env.flag_cell(row, col)
+                                self.solver.update_flag(row, col, False)
+                                self.draw_board()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
