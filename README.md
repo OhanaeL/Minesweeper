@@ -2,6 +2,8 @@
 
 Automated Minesweeper solver using browser automation/pygame and logical deduction.
 
+> **Note**: This project is primarily for visualization and browser automation purposes. The solver algorithm is not optimized for high win rates or competitive play.
+
 ![Demo](assets/minesweeper.gif)
 
 ## Installation
