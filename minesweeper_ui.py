@@ -218,15 +218,17 @@ class MinesweeperGUI:
             self.draw_board()
             return
 
-        action_type, (row, col) = action
+        action_type, action_data = action
 
         if action_type == "click":
+            row, col = action_data
             self.env.click_cell(row, col)
             if self.env.game_state() == "won":
                 self.env.reveal_remaining_mines()
-        elif action_type == "flag":
-            self.env.flag_cell(row, col)
-            self.solver.update_flag(row, col, True)
+        elif action_type == "flag_all":
+            for row, col in action_data:
+                self.env.flag_cell(row, col)
+                self.solver.update_flag(row, col, True)
 
         self.draw_board()
 

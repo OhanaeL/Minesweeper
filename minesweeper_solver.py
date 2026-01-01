@@ -139,7 +139,7 @@ class MinesweeperSolver:
             return ("click", best_safe_cell)
 
         if mines:
-            return ("flag", mines[0])
+            return ("flag_all", mines)
 
         unknown_cells = self._get_unknown_cells(board)
         if not unknown_cells:
@@ -210,11 +210,11 @@ def solve_game_browser(board_getter, click_func, flag_func, game_state_func, row
     click_func(first_row, first_col)
     time.sleep(0.1)
 
+    board = board_getter()
     moves = 1
 
     while moves < max_moves:
 
-        board = board_getter()
         game_state_str = game_state_func(board)
 
         if game_state_str != "playing":
@@ -225,19 +225,22 @@ def solve_game_browser(board_getter, click_func, flag_func, game_state_func, row
         if action is None:
             break
 
-        action_type, (row, col) = action
+        action_type, action_data = action
 
         if action_type == "click":
+            row, col = action_data
             click_func(row, col)
             time.sleep(random.uniform(0.15, 0.4))
+            board = board_getter()
             moves += 1
-        elif action_type == "flag":
-            flag_func(row, col)
-            solver.update_flag(row, col, True)
-            time.sleep(random.uniform(0.15, 0.4))
-            moves += 1
+        elif action_type == "flag_all":
+            for row, col in action_data:
+                flag_func(row, col)
+                solver.update_flag(row, col, True)
+                board[row, col] = 9
+                time.sleep(random.uniform(0.1, 0.2))
+            moves += len(action_data)
 
-        board = board_getter()
         if game_state_func(board) != "playing":
             break
 
@@ -292,20 +295,25 @@ def solve_game_simulator(rows: int, cols: int, mines: int, max_moves: int = 1000
         if action is None:
             break
         
-        action_type, (row, col) = action
+        action_type, action_data = action
         
         done = False
         if action_type == "click":
+            row, col = action_data
             board, won, done = env.click_cell(row, col)
             moves += 1
             if show_board:
                 print(f"Move {moves}: Clicked ({row}, {col})")
                 print_board(board)
-        elif action_type == "flag":
-            env.flag_cell(row, col)
-            solver.update_flag(row, col, True)
-            moves += 1
+        elif action_type == "flag_all":
+            for row, col in action_data:
+                env.flag_cell(row, col)
+                solver.update_flag(row, col, True)
+            moves += len(action_data)
             board = env.board_state()
+            if show_board:
+                print(f"Move {moves}: Flagged {len(action_data)} mines")
+                print_board(board)
             if show_board:
                 print(f"Move {moves}: Flagged ({row}, {col})")
                 print_board(board)
