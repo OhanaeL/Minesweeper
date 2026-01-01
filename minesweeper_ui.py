@@ -49,6 +49,7 @@ class MinesweeperGUI:
         self.solving = False
         self.auto_step = True
         self.move_delay = 0.1
+        self.last_clicked = None
 
         button_width = 200
         button_height = 50
@@ -102,6 +103,8 @@ class MinesweeperGUI:
 
                 val = board[row, col]
                 rect = pygame.Rect(x, y, self.cell_size, self.cell_size)
+                
+                is_last_clicked = self.last_clicked == (row, col)
 
                 if val == -1:
                     pygame.draw.rect(self.screen, self.colors['unrevealed'], rect)
@@ -128,12 +131,17 @@ class MinesweeperGUI:
                     self.screen.blit(explode_text, text_rect)
                 else:
                     pygame.draw.rect(self.screen, self.colors['revealed'], rect)
-                    pygame.draw.rect(self.screen, self.colors['revealed_border'], rect, 1)
+                    border_color = (0, 200, 0) if is_last_clicked else self.colors['revealed_border']
+                    border_width = 3 if is_last_clicked else 1
+                    pygame.draw.rect(self.screen, border_color, rect, border_width)
                     if val > 0:
                         color = self.colors['numbers'].get(val, (0, 0, 0))
                         text = self.number_font.render(str(val), True, color)
                         text_rect = text.get_rect(center=(x + self.cell_size // 2, y + self.cell_size // 2))
                         self.screen.blit(text, text_rect)
+                
+                if is_last_clicked and val == -1:
+                    pygame.draw.rect(self.screen, (0, 200, 0), rect, 3)
 
         revealed = np.sum(self.env.revealed)
         total = self.rows * self.cols
@@ -222,6 +230,7 @@ class MinesweeperGUI:
 
         if action_type == "click":
             row, col = action_data
+            self.last_clicked = (row, col)
             self.env.click_cell(row, col)
             if self.env.game_state() == "won":
                 self.env.reveal_remaining_mines()
@@ -271,6 +280,7 @@ class MinesweeperGUI:
                             board = self.env.board_state()
                             game_state = self.env.game_state()
                             if game_state == "playing" and board[row, col] == -1:
+                                self.last_clicked = (row, col)
                                 self.env.click_cell(row, col)
                                 if self.env.game_state() == "won":
                                     self.env.reveal_remaining_mines()
@@ -317,6 +327,7 @@ class MinesweeperGUI:
 
         first_row = self.rows // 2
         first_col = self.cols // 2
+        self.last_clicked = (first_row, first_col)
         self.env.click_cell(first_row, first_col)
         self.solving = True
         self.draw_board()
@@ -326,6 +337,7 @@ class MinesweeperGUI:
         self.solver.reset()
         self.solving = False
         self.auto_step = True
+        self.last_clicked = None
         self.draw_board()
 
     def run(self):
