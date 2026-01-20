@@ -4,74 +4,133 @@ import argparse
 
 from menu_ui import MenuGUI
 from minesweeper_ui import MinesweeperGUI
-from minesweeper_browser import open_browser, board_state, click_cell, flag_cell, game_state, start_game, restart_game
+from minesweeper_browser import open_browser as open_browser_playwright, board_state as board_state_playwright, click_cell as click_cell_playwright, flag_cell as flag_cell_playwright, game_state, start_game as start_game_playwright, restart_game as restart_game_playwright
+from minesweeper_browser_selenium import open_browser as open_browser_selenium, board_state as board_state_selenium, click_cell as click_cell_selenium, flag_cell as flag_cell_selenium, start_game as start_game_selenium, restart_game as restart_game_selenium
 from minesweeper_solver import solve_game_browser, solve_game_simulator
 
 import minesweeper_browser
+import minesweeper_browser_selenium
 
 
-def run_browser_mode(site, difficulty, num_games):
+def run_browser_mode(site, difficulty, num_games, browser_lib="playwright"):
     if site == "freeminesweeper.org":
         difficulty = "intermediate"
 
-    print(f"\nTesting solver on browser ({site}, {difficulty} difficulty, {num_games} games)...")
+    print(f"\nTesting solver on browser ({site}, {difficulty} difficulty, {num_games} games, {browser_lib})...")
 
-    minesweeper_browser.CURRENT_SITE = site
-    page, browser, playwright = open_browser(site)
+    if browser_lib == "selenium":
+        minesweeper_browser_selenium.CURRENT_SITE = site
+        driver = open_browser_selenium(site)
+        
+        try:
+            wins = 0
 
-    try:
-        wins = 0
+            for game_num in range(1, num_games + 1):
+                print(f"\nGame {game_num}/{num_games}")
 
-        for game_num in range(1, num_games + 1):
-            print(f"\nGame {game_num}/{num_games}")
+                if game_num > 1:
+                    restart_game_selenium(driver, difficulty)
+                else:
+                    start_game_selenium(driver, difficulty)
 
-            if game_num > 1:
-                restart_game(page, difficulty)
-            else:
-                start_game(page, difficulty)
+                board = board_state_selenium(driver)
+                rows, cols = board.shape
 
-            board = board_state(page)
-            rows, cols = board.shape
+                difficulty_mines = {
+                    "easy": 10,
+                    "intermediate": 40,
+                    "expert": 99
+                }
+                mines = difficulty_mines.get(difficulty, 10)
 
-            difficulty_mines = {
-                "easy": 10,
-                "intermediate": 40,
-                "expert": 99
-            }
-            mines = difficulty_mines.get(difficulty, 10)
+                won = solve_game_browser(
+                    board_getter=lambda: board_state_selenium(driver),
+                    click_func=lambda r, c: click_cell_selenium(driver, c, r),
+                    flag_func=lambda r, c: flag_cell_selenium(driver, c, r),
+                    game_state_func=lambda b: game_state(b),
+                    rows=rows,
+                    cols=cols,
+                    mines=mines
+                )
 
-            won = solve_game_browser(
-                board_getter=lambda: board_state(page),
-                click_func=lambda r, c: click_cell(page, c, r),
-                flag_func=lambda r, c: flag_cell(page, c, r),
-                game_state_func=lambda b: game_state(b),
-                rows=rows,
-                cols=cols,
-                mines=mines
-            )
+                if won:
+                    wins += 1
+                    print(f"Won!")
+                else:
+                    print(f"Lost")
 
-            if won:
-                wins += 1
-                print(f"Won!")
-            else:
-                print(f"Lost")
+                win_rate = (wins / game_num) * 100
+                print(f"Win Rate: {win_rate:.1f}%")
 
-            win_rate = (wins / game_num) * 100
-            print(f"Win Rate: {win_rate:.1f}%")
+                if game_num < num_games:
+                    time.sleep(random.uniform(1.0, 3.0))
 
-            if game_num < num_games:
-                time.sleep(random.uniform(1.0, 3.0))
+            print(f"\n{'='*50}")
+            print(f"Final Results:")
+            print(f"Games Played: {num_games}")
+            print(f"Wins: {wins}")
+            print(f"Win Rate: {(wins/num_games)*100:.1f}%")
+            print(f"{'='*50}")
 
-        print(f"\n{'='*50}")
-        print(f"Final Results:")
-        print(f"Games Played: {num_games}")
-        print(f"Wins: {wins}")
-        print(f"Win Rate: {(wins/num_games)*100:.1f}%")
-        print(f"{'='*50}")
+        finally:
+            driver.quit()
+    else:
+        minesweeper_browser.CURRENT_SITE = site
+        page, browser, playwright = open_browser_playwright(site)
 
-    finally:
-        browser.close()
-        playwright.stop()
+        try:
+            wins = 0
+
+            for game_num in range(1, num_games + 1):
+                print(f"\nGame {game_num}/{num_games}")
+
+                if game_num > 1:
+                    restart_game_playwright(page, difficulty)
+                else:
+                    start_game_playwright(page, difficulty)
+
+                board = board_state_playwright(page)
+                rows, cols = board.shape
+
+                difficulty_mines = {
+                    "easy": 10,
+                    "intermediate": 40,
+                    "expert": 99
+                }
+                mines = difficulty_mines.get(difficulty, 10)
+
+                won = solve_game_browser(
+                    board_getter=lambda: board_state_playwright(page),
+                    click_func=lambda r, c: click_cell_playwright(page, c, r),
+                    flag_func=lambda r, c: flag_cell_playwright(page, c, r),
+                    game_state_func=lambda b: game_state(b),
+                    rows=rows,
+                    cols=cols,
+                    mines=mines
+                )
+
+                if won:
+                    wins += 1
+                    print(f"Won!")
+                else:
+                    print(f"Lost")
+
+                win_rate = (wins / game_num) * 100
+                print(f"Win Rate: {win_rate:.1f}%")
+
+                if game_num < num_games:
+                    time.sleep(random.uniform(1.0, 3.0))
+
+            print(f"\n{'='*50}")
+            print(f"Final Results:")
+            print(f"Games Played: {num_games}")
+            print(f"Wins: {wins}")
+            print(f"Win Rate: {(wins/num_games)*100:.1f}%")
+            print(f"{'='*50}")
+
+        finally:
+            browser.close()
+            playwright.stop()
 
 
 def run_simulated_mode(difficulty, num_games, show_board):
@@ -167,7 +226,11 @@ def run_cmd_mode():
             difficulty = "intermediate"
 
         num_games = int(input("How many games? ").strip() or "10")
-        run_browser_mode(site, difficulty, num_games)
+        browser_lib = input("Browser library? (playwright/selenium): ").strip().lower() or "playwright"
+        if browser_lib not in ["playwright", "selenium"]:
+            print("Invalid browser library. Using playwright")
+            browser_lib = "playwright"
+        run_browser_mode(site, difficulty, num_games, browser_lib)
 
     elif mode == "simulated":
         difficulty = input("Difficulty? (easy/intermediate/expert): ").strip().lower()
@@ -214,12 +277,13 @@ if __name__ == "__main__":
 
         mode = config['mode']
         site = config.get('site', 'minesweeper.online')
+        browser_lib = config.get('browser_lib', 'playwright')
         difficulty = config['difficulty']
         num_games = config['num_games']
         show_board = config.get('show_board', False)
 
         if mode == "browser":
-            run_browser_mode(site, difficulty, num_games)
+            run_browser_mode(site, difficulty, num_games, browser_lib)
         elif mode == "simulated":
             run_simulated_mode(difficulty, num_games, show_board)
         elif mode == "ui":
