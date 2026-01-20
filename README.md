@@ -10,7 +10,21 @@ Automated Minesweeper solver using browser automation/pygame and logical deducti
 
 ```bash
 pip install -r requirements.txt
+```
+
+For browser automation, choose either Playwright or Selenium:
+
+**Playwright (default):**
+
+```bash
 playwright install chromium
+```
+
+**Selenium:**
+
+```bash
+# ChromeDriver is automatically managed, or install manually:
+# Download from https://chromedriver.chromium.org/
 ```
 
 or
@@ -18,7 +32,7 @@ or
 ```bash
 pip install uv
 uv sync
-playwright install chromium
+playwright install chromium  # Only needed if using Playwright
 ```
 
 ## Usage
@@ -38,7 +52,7 @@ Launches a pygame UI or command prompt that lets you select between:
 ## Features
 
 - Minesweeper Solver via Logical Deduction
-- Browser automation with Playwright
+- Browser automation with Playwright or Selenium (choose in menu)
 - Simulated environment for testing
 - Pygame GUI visualization
 

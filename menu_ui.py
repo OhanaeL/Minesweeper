@@ -45,6 +45,7 @@ class MenuGUI:
         # Menu state
         self.mode = "ui"
         self.site = "minesweeper.online"
+        self.browser_lib = "playwright"
         self.difficulty = "intermediate"
         self.num_games = "1"
         self.show_board = False
@@ -52,18 +53,21 @@ class MenuGUI:
         # Dropdown states
         self.mode_dropdown_open = False
         self.site_dropdown_open = False
+        self.browser_lib_dropdown_open = False
         self.difficulty_dropdown_open = False
         
         # Rectangles
         self.mode_rect = pygame.Rect(50, 120, 250, 40)
         self.site_rect = pygame.Rect(320, 120, 250, 40)
-        self.difficulty_rect = pygame.Rect(50, 200, 250, 40)
-        self.num_games_rect = pygame.Rect(320, 200, 250, 40)
-        self.show_board_rect = pygame.Rect(50, 280, 250, 40)
+        self.browser_lib_rect = pygame.Rect(50, 200, 250, 40)
+        self.difficulty_rect = pygame.Rect(320, 200, 250, 40)
+        self.num_games_rect = pygame.Rect(50, 280, 250, 40)
+        self.show_board_rect = pygame.Rect(320, 280, 250, 40)
         self.start_button_rect = pygame.Rect(50, 350, 500, 80)
         
         self.mode_options = ["ui", "browser", "simulated"]
         self.site_options = ["minesweeper.online", "freeminesweeper.org"]
+        self.browser_lib_options = ["playwright", "selenium"]
         self.difficulty_options = ["easy", "intermediate", "expert"]
         
         self.selected = None
@@ -154,6 +158,7 @@ class MenuGUI:
         if self.mode_rect.collidepoint(pos):
             self.mode_dropdown_open = not self.mode_dropdown_open
             self.site_dropdown_open = False
+            self.browser_lib_dropdown_open = False
             self.difficulty_dropdown_open = False
             return
         
@@ -170,8 +175,24 @@ class MenuGUI:
         if self.site_rect.collidepoint(pos) and self.mode == "browser":
             self.site_dropdown_open = not self.site_dropdown_open
             self.mode_dropdown_open = False
+            self.browser_lib_dropdown_open = False
             self.difficulty_dropdown_open = False
             return
+        
+        if self.browser_lib_rect.collidepoint(pos) and self.mode == "browser":
+            self.browser_lib_dropdown_open = not self.browser_lib_dropdown_open
+            self.mode_dropdown_open = False
+            self.site_dropdown_open = False
+            self.difficulty_dropdown_open = False
+            return
+        
+        if self.browser_lib_dropdown_open:
+            for i, option in enumerate(self.browser_lib_options):
+                option_rect = pygame.Rect(self.browser_lib_rect.x, self.browser_lib_rect.bottom + i * 35, self.browser_lib_rect.width, 35)
+                if option_rect.collidepoint(pos):
+                    self.browser_lib = option
+                    self.browser_lib_dropdown_open = False
+                    return
         
         if self.site_dropdown_open:
             for i, option in enumerate(self.site_options):
@@ -187,6 +208,7 @@ class MenuGUI:
             self.difficulty_dropdown_open = not self.difficulty_dropdown_open
             self.mode_dropdown_open = False
             self.site_dropdown_open = False
+            self.browser_lib_dropdown_open = False
             return
         
         if self.difficulty_dropdown_open:
@@ -219,6 +241,12 @@ class MenuGUI:
                 if option_rect.collidepoint(pos):
                     clicked_in_dropdown_options = True
                     break
+        if self.browser_lib_dropdown_open:
+            for i, option in enumerate(self.browser_lib_options):
+                option_rect = pygame.Rect(self.browser_lib_rect.x, self.browser_lib_rect.bottom + i * 35, self.browser_lib_rect.width, 35)
+                if option_rect.collidepoint(pos):
+                    clicked_in_dropdown_options = True
+                    break
         if self.difficulty_dropdown_open:
             for i, option in enumerate(self.difficulty_options):
                 option_rect = pygame.Rect(self.difficulty_rect.x, self.difficulty_rect.bottom + i * 35, self.difficulty_rect.width, 35)
@@ -230,6 +258,7 @@ class MenuGUI:
         if not clicked_in_dropdown_options and not any([
             self.mode_rect.collidepoint(pos), 
             self.site_rect.collidepoint(pos),
+            self.browser_lib_rect.collidepoint(pos),
             self.difficulty_rect.collidepoint(pos),
             self.num_games_rect.collidepoint(pos),
             self.show_board_rect.collidepoint(pos),
@@ -237,6 +266,7 @@ class MenuGUI:
         ]):
             self.mode_dropdown_open = False
             self.site_dropdown_open = False
+            self.browser_lib_dropdown_open = False
             self.difficulty_dropdown_open = False
     
     def handle_text_input(self, event):
@@ -349,6 +379,20 @@ class MenuGUI:
             disabled_text = self.font.render("N/A", True, (150, 150, 150))
             self.screen.blit(disabled_text, (disabled_rect.x + 10, disabled_rect.centery - disabled_text.get_height() // 2))
         
+        # Browser library dropdown box (only for browser mode)
+        if self.mode == "browser":
+            browser_lib_label = self.small_font.render("Browser Library:", True, self.colors['text'])
+            self.screen.blit(browser_lib_label, (self.browser_lib_rect.x, self.browser_lib_rect.y - 25))
+            self.draw_dropdown_box(self.browser_lib_rect, self.browser_lib, self.browser_lib_dropdown_open)
+        else:
+            browser_lib_label = self.small_font.render("Browser Library:", True, (150, 150, 150))
+            self.screen.blit(browser_lib_label, (self.browser_lib_rect.x, self.browser_lib_rect.y - 25))
+            disabled_rect = pygame.Rect(self.browser_lib_rect.x, self.browser_lib_rect.y, self.browser_lib_rect.width, self.browser_lib_rect.height)
+            pygame.draw.rect(self.screen, (220, 220, 220), disabled_rect)
+            pygame.draw.rect(self.screen, (180, 180, 180), disabled_rect, 2)
+            disabled_text = self.font.render("N/A", True, (150, 150, 150))
+            self.screen.blit(disabled_text, (disabled_rect.x + 10, disabled_rect.centery - disabled_text.get_height() // 2))
+        
         # Difficulty dropdown box
         difficulty_label = self.small_font.render("Difficulty:", True, self.colors['text'])
         self.screen.blit(difficulty_label, (self.difficulty_rect.x, self.difficulty_rect.y - 25))
@@ -392,6 +436,7 @@ class MenuGUI:
         self.draw_dropdown_options(self.mode_rect, self.mode_options, self.mode_dropdown_open)
         if self.mode == "browser":
             self.draw_dropdown_options(self.site_rect, self.site_options, self.site_dropdown_open)
+            self.draw_dropdown_options(self.browser_lib_rect, self.browser_lib_options, self.browser_lib_dropdown_open)
         if not (self.mode == "browser" and self.site == "freeminesweeper.org"):
             self.draw_dropdown_options(self.difficulty_rect, self.difficulty_options, self.difficulty_dropdown_open)
         
@@ -407,6 +452,11 @@ class MenuGUI:
         if self.site_dropdown_open:
             for i, option in enumerate(self.site_options):
                 option_rect = pygame.Rect(self.site_rect.x, self.site_rect.bottom + i * 35, self.site_rect.width, 35)
+                if option_rect.collidepoint(pos):
+                    return True
+        if self.browser_lib_dropdown_open:
+            for i, option in enumerate(self.browser_lib_options):
+                option_rect = pygame.Rect(self.browser_lib_rect.x, self.browser_lib_rect.bottom + i * 35, self.browser_lib_rect.width, 35)
                 if option_rect.collidepoint(pos):
                     return True
         if self.difficulty_dropdown_open:
@@ -443,6 +493,7 @@ class MenuGUI:
         return {
             'mode': self.mode,
             'site': self.site if self.mode == "browser" else None,
+            'browser_lib': self.browser_lib if self.mode == "browser" else None,
             'difficulty': self.difficulty,
             'num_games': num_games_int,
             'show_board': self.show_board if self.mode == "simulated" else False
