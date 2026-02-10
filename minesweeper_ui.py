@@ -214,6 +214,9 @@ class MinesweeperGUI:
             self.solving = False
             if game_state_str == "won":
                 self.env.reveal_remaining_mines()
+                print("✓ Game WON! Solver completed successfully.")
+            elif game_state_str == "lost":
+                print("✗ Game LOST! Solver hit a mine.")
             self.draw_board()
             return
 
@@ -223,6 +226,9 @@ class MinesweeperGUI:
             self.solving = False
             if self.env.game_state() == "won":
                 self.env.reveal_remaining_mines()
+                print("✓ Game WON! All mines flagged.")
+            else:
+                print("⚠ Solver stuck - no safe moves available. Board revealed so far:")
             self.draw_board()
             return
 
@@ -234,6 +240,13 @@ class MinesweeperGUI:
             self.env.click_cell(row, col)
             if self.env.game_state() == "won":
                 self.env.reveal_remaining_mines()
+        elif action_type == "click_all":
+            for row, col in action_data:
+                if self.env.game_state() == "playing":
+                    self.last_clicked = (row, col)
+                    self.env.click_cell(row, col)
+                    if self.env.game_state() == "won":
+                        self.env.reveal_remaining_mines()
         elif action_type == "flag_all":
             for row, col in action_data:
                 self.env.flag_cell(row, col)

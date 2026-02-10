@@ -72,7 +72,17 @@ def run_browser_mode(site, difficulty, num_games, browser_lib="playwright"):
             print(f"Win Rate: {(wins/num_games)*100:.1f}%")
             print(f"{'='*50}")
 
+        except Exception as e:
+            print(f"Error during game execution: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
+            print("\nClosing browser in 3 seconds... (Press Ctrl+C to keep it open)")
+            try:
+                time.sleep(3)
+            except KeyboardInterrupt:
+                print("\nBrowser kept open. Close it manually when done.")
+                input("Press Enter to close the browser: ")
             driver.quit()
     else:
         minesweeper_browser.CURRENT_SITE = site
@@ -128,7 +138,17 @@ def run_browser_mode(site, difficulty, num_games, browser_lib="playwright"):
             print(f"Win Rate: {(wins/num_games)*100:.1f}%")
             print(f"{'='*50}")
 
+        except Exception as e:
+            print(f"Error during game execution: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
+            print("\nClosing browser in 3 seconds... (Press Ctrl+C to keep it open)")
+            try:
+                time.sleep(3)
+            except KeyboardInterrupt:
+                print("\nBrowser kept open. Close it manually when done.")
+                input("Press Enter to close the browser: ")
             browser.close()
             playwright.stop()
 

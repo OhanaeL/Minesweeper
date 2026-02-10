@@ -2,6 +2,20 @@ import time
 import re
 import numpy as np
 from playwright.sync_api import sync_playwright, Page
+import subprocess
+import sys
+
+
+# Ensure Playwright browsers are installed
+def ensure_playwright_browsers():
+    try:
+        sync_playwright().start().stop()
+    except Exception:
+        print("Playwright browsers not found. Installing...")
+        subprocess.run([sys.executable, "-m", "playwright", "install"], check=True)
+        print("Playwright browsers installed successfully!")
+
+ensure_playwright_browsers()
 
 
 SITE_CONFIGS = {
@@ -94,7 +108,10 @@ def open_browser(site="minesweeper.online"):
     CURRENT_SITE = site
     config = SITE_CONFIGS[site]
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(
+        headless=False,
+        args=["--disable-blink-features=AutomationControlled"]
+    )
     page = browser.new_page()
     page.goto(config["url"])
     print(f"Website opened: {site}")
@@ -106,6 +123,9 @@ def main():
 
     try:
         page, browser, playwright = open_browser()
+        print("Browser is open. Keep this window open to see the solver in action.")
+        time.sleep(1)  # Give browser time to fully load
+        
         difficulty = input("Enter difficulty (easy, intermediate, expert): ")
         start_game(page, difficulty)
 
@@ -118,9 +138,14 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nClosing browser...")
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         if browser:
             try:
+                print("Closing browser...")
                 browser.close()
             except:
                 pass

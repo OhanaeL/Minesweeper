@@ -98,7 +98,15 @@ def open_browser(site="minesweeper.online"):
     
     chrome_options = Options()
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    driver = webdriver.Chrome(options=chrome_options)
+    chrome_options.add_argument("--start-maximized")  # Start window maximized
+    
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+    except Exception as e:
+        print(f"Error launching Chrome: {e}")
+        print("Make sure ChromeDriver is installed and in PATH")
+        raise
+    
     driver.get(config["url"])
     print(f"Website opened: {site}")
     return driver
