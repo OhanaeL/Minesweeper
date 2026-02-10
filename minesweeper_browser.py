@@ -158,73 +158,83 @@ def board_state(page):
     config = SITE_CONFIGS[CURRENT_SITE]
     
     if CURRENT_SITE == "minesweeper.online":
-        cells = page.locator(config["cell_selector"]).all()
-        max_x = 0
-        max_y = 0
-
-        for cell in cells:
-            x = int(cell.get_attribute('data-x'))
-            y = int(cell.get_attribute('data-y'))
-            max_x = max(max_x, x)
-            max_y = max(max_y, y)
-
-        width = max_x + 1
-        height = max_y + 1
-        board = np.full((height, width), -1)
-
-        for cell in cells:
-            x = int(cell.get_attribute('data-x'))
-            y = int(cell.get_attribute('data-y'))
-            cell_class = cell.get_attribute('class') or ''
-            matches = re.findall(r'hd_(\w+)', cell_class)
-            state = -1
-            if matches:
-                state = config["cell_state_map"].get(matches[-1], -1)
-            board[y, x] = state
-            
-    elif CURRENT_SITE == "freeminesweeper.org":
-        cells = page.locator(config["cell_selector"]).all()
-        max_x = 0
-        max_y = 0
-
-        for cell in cells:
-            name = cell.get_attribute('name')
-            match = re.match(r'cellIm(\d+)_(\d+)', name)
-            if match:
-                x = int(match.group(1))
-                y = int(match.group(2))
-                max_x = max(max_x, x)
-                max_y = max(max_y, y)
-
-        width = max_x + 1
-        height = max_y + 1
-        board = np.full((height, width), -1)
-
-        for cell in cells:
-            name = cell.get_attribute('name')
-            match = re.match(r'cellIm(\d+)_(\d+)', name)
-            if match:
-                x = int(match.group(1))
-                y = int(match.group(2))
-                img_src = cell.get_attribute('src') or ''
-                state = -1
+        board_data = page.evaluate("""
+            () => {
+                const cells = document.querySelectorAll('#AreaBlock .cell');
+                const board = {};
+                let max_x = 0, max_y = 0;
                 
-                if 'blank.gif' in img_src:
-                    state = -1
-                elif 'flag' in img_src.lower():
-                    state = 9
-                elif 'bombdeath' in img_src.lower():
-                    state = 11
-                elif 'bombrevealed' in img_src.lower():
-                    state = 10
-                else:
-                    match_num = re.search(r'open(\d+)', img_src)
-                    if match_num:
-                        state = int(match_num.group(1))
+                cells.forEach(cell => {
+                    const x = parseInt(cell.dataset.x);
+                    const y = parseInt(cell.dataset.y);
+                    max_x = Math.max(max_x, x);
+                    max_y = Math.max(max_y, y);
+                    
+                    const classList = Array.from(cell.classList);
+                    const typeMatch = classList.find(c => c.startsWith('hd_'));
+                    const type = typeMatch ? typeMatch.replace('hd_', '') : 'closed';
+                    
+                    board[`${x},${y}`] = type;
+                });
                 
-                board[y, x] = state
+                return { board, width: max_x + 1, height: max_y + 1 };
+            }
+        """)
+        
+        width = board_data['width']
+        height = board_data['height']
+        board = np.full((height, width), -1)
+        
+        state_map = config["cell_state_map"]
+        for key, state_str in board_data['board'].items():
+            x, y = map(int, key.split(','))
+            board[y, x] = state_map.get(state_str, -1)
+        
+        return board
     
-    return board
+    elif CURRENT_SITE == "freeminesweeper.org":
+        board_data = page.evaluate("""
+            () => {
+                const cells = document.querySelectorAll('img[name^="cellIm"]');
+                const board = {};
+                let max_x = 0, max_y = 0;
+                
+                cells.forEach(cell => {
+                    const match = cell.name.match(/cellIm(\\d+)_(\\d+)/);
+                    if (match) {
+                        const x = parseInt(match[1]);
+                        const y = parseInt(match[2]);
+                        max_x = Math.max(max_x, x);
+                        max_y = Math.max(max_y, y);
+                        board[`${x},${y}`] = cell.src;
+                    }
+                });
+                
+                return { board, width: max_x + 1, height: max_y + 1 };
+            }
+        """)
+        
+        width = board_data['width']
+        height = board_data['height']
+        board = np.full((height, width), -1)
+        
+        for key, img_src in board_data['board'].items():
+            x, y = map(int, key.split(','))
+            if 'blank.gif' in img_src:
+                state = -1
+            elif 'flag' in img_src.lower():
+                state = 9
+            elif 'bombdeath' in img_src.lower():
+                state = 11
+            elif 'bombrevealed' in img_src.lower():
+                state = 10
+            else:
+                match_num = re.search(r'open(\d+)', img_src)
+                state = int(match_num.group(1)) if match_num else -1
+            
+            board[y, x] = state
+        
+        return board
 
 def click_cell(page, x, y):
     config = SITE_CONFIGS[CURRENT_SITE]
