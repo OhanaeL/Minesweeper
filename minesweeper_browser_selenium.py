@@ -153,6 +153,7 @@ def restart_game(driver, difficulty="intermediate"):
 
 def board_state(driver):
     config = SITE_CONFIGS[CURRENT_SITE]
+    board = []
     
     if CURRENT_SITE == "minesweeper.online":
         cells = driver.find_elements(By.CSS_SELECTOR, config["cell_selector"])

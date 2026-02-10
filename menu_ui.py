@@ -64,64 +64,63 @@ class MenuGUI:
         self.num_games_rect = pygame.Rect(50, 280, 250, 40)
         self.show_board_rect = pygame.Rect(320, 280, 250, 40)
         self.start_button_rect = pygame.Rect(50, 350, 500, 80)
-        
+
         self.mode_options = ["ui", "browser", "simulated"]
         self.site_options = ["minesweeper.online", "freeminesweeper.org"]
         self.browser_lib_options = ["playwright", "selenium"]
         self.difficulty_options = ["easy", "intermediate", "expert"]
-        
+
         self.selected = None
         self.running = True
-        
+
     def draw_dropdown(self, rect, text, options, is_open, selected_value):
         # Draw dropdown box
         color = self.colors['dropdown_hover'] if rect.collidepoint(pygame.mouse.get_pos()) else self.colors['dropdown']
         pygame.draw.rect(self.screen, color, rect)
         pygame.draw.rect(self.screen, self.colors['dropdown_border'], rect, 2)
-        
+
         # Draw selected text
         text_surface = self.font.render(str(selected_value), True, self.colors['text'])
         text_x = rect.x + 10
         text_y = rect.centery - text_surface.get_height() // 2
         self.screen.blit(text_surface, (text_x, text_y))
-        
+
         # Draw arrow
         arrow_size = 8
         arrow_x = rect.right - 20
         arrow_y = rect.centery
         if is_open:
-            pygame.draw.polygon(self.screen, self.colors['text'], 
-                              [(arrow_x, arrow_y - arrow_size//2),
-                               (arrow_x + arrow_size, arrow_y - arrow_size//2),
-                               (arrow_x + arrow_size//2, arrow_y + arrow_size//2)])
+            pygame.draw.polygon(self.screen, self.colors['text'],
+                                [(arrow_x, arrow_y - arrow_size//2),
+                                (arrow_x + arrow_size, arrow_y - arrow_size//2),
+                                (arrow_x + arrow_size//2, arrow_y + arrow_size//2)])
         else:
             pygame.draw.polygon(self.screen, self.colors['text'],
-                              [(arrow_x, arrow_y + arrow_size//2),
-                               (arrow_x + arrow_size, arrow_y + arrow_size//2),
-                               (arrow_x + arrow_size//2, arrow_y - arrow_size//2)])
-        
-        # Draw dropdown options if open
+                                [(arrow_x, arrow_y + arrow_size//2),
+                                (arrow_x + arrow_size, arrow_y + arrow_size//2),
+                                (arrow_x + arrow_size//2, arrow_y - arrow_size//2)])
+
         if is_open:
             dropdown_height = len(options) * 35
             dropdown_rect = pygame.Rect(rect.x, rect.bottom, rect.width, dropdown_height)
             pygame.draw.rect(self.screen, self.colors['dropdown'], dropdown_rect)
             pygame.draw.rect(self.screen, self.colors['dropdown_border'], dropdown_rect, 2)
-            
+
             for i, option in enumerate(options):
                 option_rect = pygame.Rect(rect.x, rect.bottom + i * 35, rect.width, 35)
                 mouse_pos = pygame.mouse.get_pos()
                 if option_rect.collidepoint(mouse_pos):
                     pygame.draw.rect(self.screen, self.colors['dropdown_hover'], option_rect)
-                
+
                 option_text = self.font.render(str(option), True, self.colors['text'])
                 option_y = option_rect.centery - option_text.get_height() // 2
                 self.screen.blit(option_text, (option_rect.x + 10, option_y))
-    
+
     def draw_text_input(self, rect, text, label):
-        # Draw label
+ 
         label_surface = self.small_font.render(label, True, self.colors['text'])
         self.screen.blit(label_surface, (rect.x, rect.y - 25))
-        
+
         # Draw input box
         color = self.colors['dropdown_hover'] if rect.collidepoint(pygame.mouse.get_pos()) else self.colors['dropdown']
         pygame.draw.rect(self.screen, color, rect)

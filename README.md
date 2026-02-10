@@ -55,6 +55,31 @@ Launches a pygame UI or command prompt that lets you select between:
 - Browser automation with Playwright or Selenium (choose in menu)
 - Simulated environment for testing
 - Pygame GUI visualization
+- Comprehensive pytest test suite
+
+## Testing
+
+The project includes a comprehensive pytest test suite covering:
+
+- `MinesweeperEnv` - Game environment logic (initialization, cell clicking, flagging, win/loss conditions)
+- `MinesweeperSolver` - Solver algorithm (neighbor detection, constraint analysis, probability calculations)
+- Game solving functions - End-to-end solver tests
+
+Run tests with:
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_minesweeper_env.py
+
+# Run specific test
+pytest tests/test_minesweeper_env.py::TestMinesweeperEnv::test_initialization
+```
 
 ## Mine Solving Process
 

@@ -47,7 +47,7 @@ class MinesweeperSolver:
             flagged_count = 0
 
             for neighbour_row, neighbour_col in neighbours:
-                if (neighbour_row, neighbour_col) in self.flagged:
+                if (neighbour_row, neighbour_col) in self.flagged or board[neighbour_row, neighbour_col] == 9:
                     flagged_count += 1
                 elif board[neighbour_row, neighbour_col] == -1:
                     unrevealed_neighbours.append((neighbour_row, neighbour_col))
@@ -71,7 +71,6 @@ class MinesweeperSolver:
 
     def calculate_probabilities(self, board: np.ndarray):
         probabilities = defaultdict(lambda: [0, 0])
-        
         revealed_mask = (board >= 0) & (board <= 8)
         revealed_positions = np.argwhere(revealed_mask)
 
@@ -82,7 +81,7 @@ class MinesweeperSolver:
             flagged_count = 0
 
             for neighbour_row, neighbour_col in neighbours:
-                if (neighbour_row, neighbour_col) in self.flagged:
+                if (neighbour_row, neighbour_col) in self.flagged or board[neighbour_row, neighbour_col] == 9:
                     flagged_count += 1
                 elif board[neighbour_row, neighbour_col] == -1:
                     unrevealed_neighbours.append((neighbour_row, neighbour_col))
@@ -90,8 +89,10 @@ class MinesweeperSolver:
             remaining_mines = cell_value - flagged_count
             if remaining_mines > 0 and unrevealed_neighbours:
                 for neighbour_row, neighbour_col in unrevealed_neighbours:
-                    probabilities[(neighbour_row, neighbour_col)][0] += remaining_mines
-                    probabilities[(neighbour_row, neighbour_col)][1] += len(unrevealed_neighbours)
+                    key = (neighbour_row, neighbour_col)
+                    current = probabilities[key]
+                    current[0] += remaining_mines # type: ignore
+                    current[1] += len(unrevealed_neighbours)
 
         prob_dict = {}
         for cell, (mine_sum, constraint_sum) in probabilities.items():
@@ -106,7 +107,7 @@ class MinesweeperSolver:
         revealed_mask = (board >= 0) & (board <= 8)
         revealed_count = np.sum(revealed_mask)
         has_zero = np.any(board == 0)
-        return revealed_count < 10 and not has_zero
+        return bool(revealed_count < 10 and not has_zero)
 
     def _get_cell_far_from_revealed(self, board: np.ndarray, unknown_cells: List[Tuple[int, int]]) -> Tuple[int, int]:
         revealed_mask = (board >= 0) & (board <= 8)
@@ -135,8 +136,9 @@ class MinesweeperSolver:
         safe, mines = self._analyze_constraints(board)
         
         if safe:
-            best_safe_cell = self._prefer_informative_cell(board, safe)
-            return ("click", best_safe_cell)
+            # Return all safe cells to be clicked at once
+            sorted_safe = self._sort_cells_by_informativeness(board, safe)
+            return ("click_all", sorted_safe)
 
         if mines:
             return ("flag_all", mines)
@@ -191,6 +193,26 @@ class MinesweeperSolver:
 
         return best_cell
 
+    def _sort_cells_by_informativeness(self, board: np.ndarray, safe_cells: List[Tuple[int, int]]):
+        """Sort safe cells by informativeness (most informative first)"""
+        cell_scores = []
+        
+        for cell in safe_cells:
+            score = 0
+            neighbours = self.get_neighbours(cell[0], cell[1])
+
+            for nr, nc in neighbours:
+                if board[nr, nc] >= 0 and board[nr, nc] <= 8:
+                    score += 1
+                    if board[nr, nc] == 0:
+                        score += 2  # bonus for zeros
+
+            cell_scores.append((score, cell))
+        
+        # Sort by score descending, then return just the cells
+        cell_scores.sort(key=lambda x: x[0], reverse=True)
+        return [cell for score, cell in cell_scores]
+
     def update_flag(self, row: int, col: int, is_flag: bool):
         if is_flag:
             self.flagged.add((row, col))
@@ -230,15 +252,23 @@ def solve_game_browser(board_getter, click_func, flag_func, game_state_func, row
         if action_type == "click":
             row, col = action_data
             click_func(row, col)
-            time.sleep(random.uniform(0.15, 0.4))
+            time.sleep(random.uniform(0.05, 0.15))
             board = board_getter()
             moves += 1
+        elif action_type == "click_all":
+            for row, col in action_data:
+                click_func(row, col)
+                time.sleep(random.uniform(0.05, 0.1))
+                moves += 1
+            board = board_getter()
         elif action_type == "flag_all":
             for row, col in action_data:
+                if (row, col) in solver.flagged or board[row, col] == 9:
+                    continue
                 flag_func(row, col)
                 solver.update_flag(row, col, True)
                 board[row, col] = 9
-                time.sleep(random.uniform(0.1, 0.2))
+                time.sleep(random.uniform(0.05, 0.1))
             moves += len(action_data)
 
         if game_state_func(board) != "playing":
@@ -305,6 +335,15 @@ def solve_game_simulator(rows: int, cols: int, mines: int, max_moves: int = 1000
             if show_board:
                 print(f"Move {moves}: Clicked ({row}, {col})")
                 print_board(board)
+        elif action_type == "click_all":
+            for row, col in action_data:
+                board, won, done = env.click_cell(row, col)
+                moves += 1
+                if done:
+                    break
+            if show_board:
+                print(f"Move {moves}: Clicked {len(action_data)} safe cells")
+                print_board(board)
         elif action_type == "flag_all":
             for row, col in action_data:
                 env.flag_cell(row, col)
@@ -313,9 +352,6 @@ def solve_game_simulator(rows: int, cols: int, mines: int, max_moves: int = 1000
             board = env.board_state()
             if show_board:
                 print(f"Move {moves}: Flagged {len(action_data)} mines")
-                print_board(board)
-            if show_board:
-                print(f"Move {moves}: Flagged ({row}, {col})")
                 print_board(board)
             if env.game_state() != "playing":
                 done = True
